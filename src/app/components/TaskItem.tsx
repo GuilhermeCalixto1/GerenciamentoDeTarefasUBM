@@ -1,10 +1,13 @@
-import { Task } from './TaskForm';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Checkbox } from './ui/checkbox';
-import { Pencil, Trash2, Calendar, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Task } from "./TaskForm";
+import {
+  Calendar,
+  CheckCircle2,
+  Circle,
+  Edit,
+  Trash2,
+  Eye,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TaskItemProps {
   task: Task;
@@ -13,89 +16,110 @@ interface TaskItemProps {
   onDelete: (id: string) => void;
 }
 
-const priorityColors = {
-  baixa: 'bg-blue-100 text-blue-800 border-blue-200',
-  media: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  alta: 'bg-red-100 text-red-800 border-red-200',
-};
+export function TaskItem({
+  task,
+  onToggleComplete,
+  onEdit,
+  onDelete,
+}: TaskItemProps) {
+  const navigate = useNavigate();
 
-const priorityLabels = {
-  baixa: 'Baixa',
-  media: 'Média',
-  alta: 'Alta',
-};
-
-export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemProps) {
-  const isOverdue = task.dataEntrega && new Date(task.dataEntrega) < new Date() && !task.concluida;
-
-  const handleDelete = () => {
-    if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      onDelete(task.id);
-    }
+  // Mapeamento de cores para as badges de prioridade
+  const priorityColors = {
+    baixa: "bg-blue-100 text-blue-700",
+    media: "bg-orange-100 text-orange-700",
+    alta: "bg-red-100 text-red-700",
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-md p-4 transition-all hover:shadow-lg ${task.concluida ? 'opacity-75' : ''}`}>
-      <div className="flex items-start gap-3">
-        <div className="pt-1">
-          <Checkbox
-            checked={task.concluida}
-            onCheckedChange={() => onToggleComplete(task.id)}
-            id={`task-${task.id}`}
-          />
-        </div>
+    <div
+      className={`bg-white rounded-lg shadow-sm border p-4 transition-all ${task.concluida ? "opacity-75 bg-gray-50" : "hover:shadow-md"}`}
+    >
+      <div className="flex items-start gap-4">
+        {/* Botão de Concluir Tarefa */}
+        <button
+          onClick={() => onToggleComplete(task.id)}
+          className="mt-1 flex-shrink-0 text-gray-400 hover:text-blue-600 transition-colors"
+          title={
+            task.concluida ? "Marcar como pendente" : "Marcar como concluída"
+          }
+        >
+          {task.concluida ? (
+            <CheckCircle2 size={24} className="text-green-500" />
+          ) : (
+            <Circle size={24} />
+          )}
+        </button>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3
-              className={`font-semibold text-lg ${
-                task.concluida ? 'line-through text-gray-500' : 'text-gray-900'
-              }`}
+          <div className="flex items-start justify-between gap-2">
+            {/* Título e Descrição */}
+            <div>
+              <h3
+                className={`font-semibold text-lg truncate cursor-pointer hover:text-blue-600 transition-colors ${task.concluida ? "text-gray-500 line-through" : "text-gray-900"}`}
+                onClick={() => navigate(`/tarefa/${task.id}`)}
+                title="Clique para ver os detalhes"
+              >
+                {task.titulo}
+              </h3>
+              {task.descricao && (
+                <p
+                  className={`mt-1 text-sm line-clamp-2 ${task.concluida ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  {task.descricao}
+                </p>
+              )}
+            </div>
+
+            {/* Badge de Prioridade */}
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${priorityColors[task.prioridade]}`}
             >
-              {task.titulo}
-            </h3>
-            <Badge className={priorityColors[task.prioridade]}>
-              {priorityLabels[task.prioridade]}
-            </Badge>
+              {task.prioridade.charAt(0).toUpperCase() +
+                task.prioridade.slice(1)}
+            </span>
           </div>
 
-          {task.descricao && (
-            <p className={`text-sm mb-3 ${task.concluida ? 'text-gray-400' : 'text-gray-600'}`}>
-              {task.descricao}
-            </p>
-          )}
+          <div className="mt-4 flex items-center justify-between">
+            {/* Data de Entrega */}
+            <div className="flex items-center text-sm text-gray-500">
+              {task.dataEntrega ? (
+                <>
+                  <Calendar size={16} className="mr-1.5" />
+                  {new Date(task.dataEntrega).toLocaleDateString("pt-BR", {
+                    timeZone: "UTC",
+                  })}
+                </>
+              ) : (
+                <span className="text-gray-400">Sem data definida</span>
+              )}
+            </div>
 
-          <div className="flex items-center gap-4 text-sm">
-            {task.dataEntrega && (
-              <div className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                {isOverdue && <AlertCircle size={16} />}
-                <Calendar size={16} />
-                <span>
-                  {format(new Date(task.dataEntrega), "dd/MM/yyyy", { locale: ptBR })}
-                </span>
-                {isOverdue && <span className="text-xs">(Atrasada)</span>}
-              </div>
-            )}
+            {/* Ações (Ver Detalhes, Editar, Excluir) */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/tarefa/${task.id}`)}
+                className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                title="Ver detalhes"
+              >
+                <Eye size={18} />
+              </button>
+              <button
+                onClick={() => onEdit(task)}
+                className="p-1.5 text-gray-400 hover:text-yellow-600 transition-colors"
+                title="Editar tarefa"
+              >
+                <Edit size={18} />
+              </button>
+              <button
+                onClick={() => onDelete(task.id)}
+                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                title="Excluir tarefa"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(task)}
-            className="hover:bg-blue-50 hover:text-blue-600"
-          >
-            <Pencil size={16} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            className="hover:bg-red-50 hover:text-red-600"
-          >
-            <Trash2 size={16} />
-          </Button>
         </div>
       </div>
     </div>
