@@ -51,7 +51,7 @@ function exibirTarefas() {
     li.innerHTML =
       '<strong>' + tarefa.titulo + '</strong>' +
       (tarefa.descricao ? '<span>' + tarefa.descricao + '</span>' : '') +
-      '<span>📅 ' + dataFormatada + '  |  Prioridade: ' + tarefa.prioridade + '</span>';
+      '<span>' + dataFormatada + '  |  Prioridade: ' + tarefa.prioridade + '</span>';
 
     listaTarefas.appendChild(li);
   });
