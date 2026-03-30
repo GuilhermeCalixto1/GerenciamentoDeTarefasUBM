@@ -1,15 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cadastro de Tarefas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>GerenciadorDeTarefas</title>
-    </head>
+  <div class="container">
+    <h1>Cadastro de Tarefas</h1>
 
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-    </body>
-  </html>
-  
+    <div class="formulario">
+      <label for="inputTitulo">Título</label>
+      <input type="text" id="inputTitulo" placeholder="Digite o título da tarefa" />
+
+      <label for="inputDescricao">Descrição</label>
+      <textarea id="inputDescricao" placeholder="Digite a descrição da tarefa"></textarea>
+
+      <label for="inputData">Data</label>
+      <input type="date" id="inputData" />
+
+      <label for="inputPrioridade">Prioridade</label>
+      <select id="inputPrioridade">
+        <option value="baixa">Baixa</option>
+        <option value="media" selected>Média</option>
+        <option value="alta">Alta</option>
+      </select>
+
+      <button id="btnSalvar">Salvar Tarefa</button>
+    </div>
+
+    <h2>Tarefas Salvas</h2>
+    <ul id="listaTarefas"></ul>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
