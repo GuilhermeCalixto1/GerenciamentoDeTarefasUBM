@@ -1,191 +1,174 @@
-import { useState, useEffect, useMemo } from 'react';
-import { TaskForm, Task } from './components/TaskForm';
-import { TaskList } from './components/TaskList';
-import { FilterBar } from './components/FilterBar';
-import { Button } from './components/ui/button';
-import { Plus, ClipboardList } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+
+type Tarefa = {
+  titulo: string;
+  descricao: string;
+  data: string;
+  prioridade: 'baixa' | 'media' | 'alta';
+};
 
 export default function App() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | undefined>();
-  const [statusFilter, setStatusFilter] = useState<'todas' | 'pendentes' | 'concluidas'>('todas');
-  const [priorityFilter, setPriorityFilter] = useState<'todas' | 'baixa' | 'media' | 'alta'>('todas');
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [data, setData] = useState('');
+  const [prioridade, setPrioridade] = useState<Tarefa['prioridade']>('media');
+  const [tarefas, setTarefas] = useState<Tarefa[]>(() => {
+    try {
+      const salvas = localStorage.getItem('tarefas');
+      return salvas ? JSON.parse(salvas) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  // Carregar tarefas do localStorage ao iniciar
   useEffect(() => {
-    const storedTasks = localStorage.getItem('tasks');
-    if (storedTasks) {
-      try {
-        setTasks(JSON.parse(storedTasks));
-      } catch (error) {
-        console.error('Erro ao carregar tarefas:', error);
-      }
-    }
-  }, []);
+    localStorage.setItem('tarefas', JSON.stringify(tarefas));
+  }, [tarefas]);
 
-  // Salvar tarefas no localStorage quando houver mudanças
-  useEffect(() => {
-    if (tasks.length > 0 || localStorage.getItem('tasks')) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-    }
-  }, [tasks]);
+  const tarefasOrdenadas = useMemo(() => {
+    const ordemPrioridade: Record<Tarefa['prioridade'], number> = {
+      alta: 0,
+      media: 1,
+      baixa: 2,
+    };
 
-  const handleAddTask = (taskData: Omit<Task, 'id' | 'concluida'>) => {
-    if (editingTask) {
-      // Editar tarefa existente
-      setTasks(tasks.map(task =>
-        task.id === editingTask.id
-          ? { ...task, ...taskData }
-          : task
-      ));
-      setEditingTask(undefined);
-    } else {
-      // Adicionar nova tarefa
-      const newTask: Task = {
-        ...taskData,
-        id: crypto.randomUUID(),
-        concluida: false,
-      };
-      setTasks([...tasks, newTask]);
-    }
-    setShowForm(false);
-  };
+    return [...tarefas].sort((a, b) => {
+      const diffPrioridade = ordemPrioridade[a.prioridade] - ordemPrioridade[b.prioridade];
+      if (diffPrioridade !== 0) return diffPrioridade;
 
-  const handleToggleComplete = (id: string) => {
-    setTasks(tasks.map(task =>
-      task.id === id
-        ? { ...task, concluida: !task.concluida }
-        : task
-    ));
-  };
+      if (!a.data && !b.data) return 0;
+      if (!a.data) return 1;
+      if (!b.data) return -1;
 
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-    setShowForm(true);
-  };
-
-  const handleDeleteTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
-  };
-
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingTask(undefined);
-  };
-
-  // Filtrar tarefas
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      // Filtro por status
-      if (statusFilter === 'pendentes' && task.concluida) return false;
-      if (statusFilter === 'concluidas' && !task.concluida) return false;
-
-      // Filtro por prioridade
-      if (priorityFilter !== 'todas' && task.prioridade !== priorityFilter) return false;
-
-      return true;
-    }).sort((a, b) => {
-      // Ordenar: não concluídas primeiro, depois por prioridade, depois por data
-      if (a.concluida !== b.concluida) {
-        return a.concluida ? 1 : -1;
-      }
-      
-      const priorityOrder = { alta: 0, media: 1, baixa: 2 };
-      if (a.prioridade !== b.prioridade) {
-        return priorityOrder[a.prioridade] - priorityOrder[b.prioridade];
-      }
-
-      if (a.dataEntrega && b.dataEntrega) {
-        return new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime();
-      }
-      
-      return 0;
+      return new Date(a.data).getTime() - new Date(b.data).getTime();
     });
-  }, [tasks, statusFilter, priorityFilter]);
+  }, [tarefas]);
 
-  // Contadores para filtros
-  const taskCounts = useMemo(() => ({
-    todas: tasks.length,
-    pendentes: tasks.filter(t => !t.concluida).length,
-    concluidas: tasks.filter(t => t.concluida).length,
-  }), [tasks]);
+  function salvarTarefa() {
+    const tituloLimpo = titulo.trim();
+    const descricaoLimpa = descricao.trim();
+
+    if (!tituloLimpo) {
+      alert('Por favor, informe o titulo da tarefa.');
+      return;
+    }
+
+    const novaTarefa: Tarefa = {
+      titulo: tituloLimpo,
+      descricao: descricaoLimpa,
+      data,
+      prioridade,
+    };
+
+    setTarefas(prev => [...prev, novaTarefa]);
+    setTitulo('');
+    setDescricao('');
+    setData('');
+    setPrioridade('media');
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-3 rounded-lg shadow-md">
-                <ClipboardList size={32} className="text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Gerenciador de Tarefas
-                </h1>
-                <p className="text-gray-600">
-                  Organize suas tarefas e aumente sua produtividade
-                </p>
-              </div>
-            </div>
-            
-            {!showForm && (
-              <Button
-                onClick={() => setShowForm(true)}
-                size="lg"
-                className="gap-2"
-              >
-                <Plus size={20} />
-                Nova Tarefa
-              </Button>
-            )}
-          </div>
+    <main className="min-h-screen bg-[#f4f4f4] p-5 font-[Arial,sans-serif]">
+      <div className="mx-auto w-full max-w-[500px] rounded-lg bg-white p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+        <h1 className="mb-5 text-2xl font-bold text-[#333333]">Cadastro de Tarefas</h1>
 
-          {/* Estatísticas rápidas */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-white rounded-lg shadow-md p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{taskCounts.todas}</div>
-              <div className="text-sm text-gray-600">Total de Tarefas</div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{taskCounts.pendentes}</div>
-              <div className="text-sm text-gray-600">Pendentes</div>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{taskCounts.concluidas}</div>
-              <div className="text-sm text-gray-600">Concluídas</div>
-            </div>
-          </div>
+        <div className="flex flex-col gap-2.5">
+          <label htmlFor="inputTitulo" className="text-[0.9rem] font-bold text-[#555555]">Titulo</label>
+        <input
+          type="text"
+          id="inputTitulo"
+          placeholder="Digite o titulo da tarefa"
+          value={titulo}
+          onChange={event => setTitulo(event.target.value)}
+          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        />
+
+          <label htmlFor="inputDescricao" className="text-[0.9rem] font-bold text-[#555555]">Descricao</label>
+        <textarea
+          id="inputDescricao"
+          placeholder="Digite a descricao da tarefa"
+          value={descricao}
+          onChange={event => setDescricao(event.target.value)}
+          className="min-h-20 w-full resize-y rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        />
+
+          <label htmlFor="inputData" className="text-[0.9rem] font-bold text-[#555555]">Data</label>
+        <input
+          type="date"
+          id="inputData"
+          value={data}
+          onChange={event => setData(event.target.value)}
+          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        />
+
+          <label htmlFor="inputPrioridade" className="text-[0.9rem] font-bold text-[#555555]">Prioridade</label>
+        <select
+          id="inputPrioridade"
+          value={prioridade}
+          onChange={event => setPrioridade(event.target.value as Tarefa['prioridade'])}
+          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        >
+          <option value="baixa">Baixa</option>
+          <option value="media">Media</option>
+          <option value="alta">Alta</option>
+        </select>
+
+          <button
+            id="btnSalvar"
+            onClick={salvarTarefa}
+            className="mt-1.5 cursor-pointer rounded-md border-none bg-[#4f46e5] p-2.5 text-base text-white hover:bg-[#4338ca]"
+          >
+            Salvar Tarefa
+          </button>
         </div>
 
-        {/* Formulário */}
-        {showForm && (
-          <TaskForm
-            onSubmit={handleAddTask}
-            onCancel={handleCancelForm}
-            editingTask={editingTask}
-          />
-        )}
+        <h2 className="mb-2.5 mt-[30px] text-[1.1rem] font-bold text-[#333333]">Tarefas Salvas</h2>
+        <ul id="listaTarefas" className="flex list-none flex-col gap-2.5 p-0">
+          {tarefasOrdenadas.map((tarefa, indice) => {
+            const dataFormatada = tarefa.data
+              ? new Date(`${tarefa.data}T00:00:00`).toLocaleDateString('pt-BR')
+              : 'Sem data';
 
-        {/* Filtros */}
-        <FilterBar
-          statusFilter={statusFilter}
-          priorityFilter={priorityFilter}
-          onStatusFilterChange={setStatusFilter}
-          onPriorityFilterChange={setPriorityFilter}
-          taskCounts={taskCounts}
-        />
+            const prioridadeClasses = {
+              alta: {
+                item: 'border-l-4 border-l-red-500 bg-red-50',
+                badge: 'bg-red-100 text-red-800',
+                label: 'Alta',
+              },
+              media: {
+                item: 'border-l-4 border-l-amber-500 bg-amber-50',
+                badge: 'bg-amber-100 text-amber-800',
+                label: 'Media',
+              },
+              baixa: {
+                item: 'border-l-4 border-l-emerald-500 bg-emerald-50',
+                badge: 'bg-emerald-100 text-emerald-800',
+                label: 'Baixa',
+              },
+            }[tarefa.prioridade];
 
-        {/* Lista de Tarefas */}
-        <TaskList
-          tasks={filteredTasks}
-          onToggleComplete={handleToggleComplete}
-          onEdit={handleEditTask}
-          onDelete={handleDeleteTask}
-        />
+            return (
+              <li
+                key={`${tarefa.titulo}-${indice}`}
+                className={`rounded-md border border-[#dddddd] px-[14px] py-3 text-[0.9rem] text-[#333333] ${prioridadeClasses.item}`}
+              >
+                <strong className="mb-1 block text-base">{tarefa.titulo}</strong>
+                {tarefa.descricao ? (
+                  <span className="mt-0.5 block text-[0.82rem] text-[#777777]">{tarefa.descricao}</span>
+                ) : null}
+                <span className="mt-1 inline-flex rounded-full px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-wide">
+                  <span className={`rounded-full px-2 py-0.5 ${prioridadeClasses.badge}`}>
+                    {prioridadeClasses.label}
+                  </span>
+                </span>
+                <span className="mt-1 block text-[0.82rem] text-[#777777]">
+                  Data: {dataFormatada}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
-    </div>
+    </main>
   );
 }
