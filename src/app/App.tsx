@@ -1,173 +1,206 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
+import { FilterBar } from "./components/FilterBar";
+import { TaskForm, type Task } from "./components/TaskForm";
+import { TaskList } from "./components/TaskList";
 
-type Tarefa = {
-  titulo: string;
-  descricao: string;
-  data: string;
-  prioridade: 'baixa' | 'media' | 'alta';
+type SavedTask = Partial<Task> & {
+  titulo?: unknown;
+  descricao?: unknown;
+  dataEntrega?: unknown;
+  data?: unknown;
+  prioridade?: unknown;
+  concluida?: unknown;
 };
 
+function gerarId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizarTarefa(tarefa: SavedTask): Task | null {
+  if (typeof tarefa.titulo !== "string" || tarefa.titulo.trim() === "") {
+    return null;
+  }
+
+  const prioridadeValida =
+    tarefa.prioridade === "alta" ||
+    tarefa.prioridade === "media" ||
+    tarefa.prioridade === "baixa"
+      ? tarefa.prioridade
+      : "media";
+
+  const dataNormalizada =
+    typeof tarefa.dataEntrega === "string"
+      ? tarefa.dataEntrega
+      : typeof tarefa.data === "string"
+        ? tarefa.data
+        : "";
+
+  return {
+    id: typeof tarefa.id === "string" && tarefa.id ? tarefa.id : gerarId(),
+    titulo: tarefa.titulo.trim(),
+    descricao: typeof tarefa.descricao === "string" ? tarefa.descricao : "",
+    dataEntrega: dataNormalizada,
+    prioridade: prioridadeValida,
+    concluida: Boolean(tarefa.concluida),
+  };
+}
+
 export default function App() {
-  const [titulo, setTitulo] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [data, setData] = useState('');
-  const [prioridade, setPrioridade] = useState<Tarefa['prioridade']>('media');
-  const [tarefas, setTarefas] = useState<Tarefa[]>(() => {
+  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<
+    "todas" | "pendentes" | "concluidas"
+  >("todas");
+  const [priorityFilter, setPriorityFilter] = useState<
+    "todas" | "baixa" | "media" | "alta"
+  >("todas");
+  const [tasks, setTasks] = useState<Task[]>(() => {
     try {
-      const salvas = localStorage.getItem('tarefas');
-      return salvas ? JSON.parse(salvas) : [];
+      const salvas = localStorage.getItem("tarefas");
+      if (!salvas) return [];
+
+      const parsed = JSON.parse(salvas);
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed
+        .map((item) => normalizarTarefa(item as SavedTask))
+        .filter((item): item is Task => item !== null);
     } catch {
       return [];
     }
   });
 
   useEffect(() => {
-    localStorage.setItem('tarefas', JSON.stringify(tarefas));
-  }, [tarefas]);
+    localStorage.setItem("tarefas", JSON.stringify(tasks));
+  }, [tasks]);
 
-  const tarefasOrdenadas = useMemo(() => {
-    const ordemPrioridade: Record<Tarefa['prioridade'], number> = {
+  const sortedTasks = useMemo(() => {
+    const prioridadeOrdem: Record<Task["prioridade"], number> = {
       alta: 0,
       media: 1,
       baixa: 2,
     };
 
-    return [...tarefas].sort((a, b) => {
-      const diffPrioridade = ordemPrioridade[a.prioridade] - ordemPrioridade[b.prioridade];
+    return [...tasks].sort((a, b) => {
+      const diffPrioridade =
+        prioridadeOrdem[a.prioridade] - prioridadeOrdem[b.prioridade];
       if (diffPrioridade !== 0) return diffPrioridade;
 
-      if (!a.data && !b.data) return 0;
-      if (!a.data) return 1;
-      if (!b.data) return -1;
+      if (!a.dataEntrega && !b.dataEntrega) return 0;
+      if (!a.dataEntrega) return 1;
+      if (!b.dataEntrega) return -1;
 
-      return new Date(a.data).getTime() - new Date(b.data).getTime();
+      return (
+        new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime()
+      );
     });
-  }, [tarefas]);
+  }, [tasks]);
 
-  function salvarTarefa() {
-    const tituloLimpo = titulo.trim();
-    const descricaoLimpa = descricao.trim();
+  const filteredTasks = useMemo(() => {
+    return sortedTasks.filter((task) => {
+      const statusOk =
+        statusFilter === "todas" ||
+        (statusFilter === "pendentes" && !task.concluida) ||
+        (statusFilter === "concluidas" && task.concluida);
 
-    if (!tituloLimpo) {
-      alert('Por favor, informe o titulo da tarefa.');
+      const prioridadeOk =
+        priorityFilter === "todas" || task.prioridade === priorityFilter;
+
+      return statusOk && prioridadeOk;
+    });
+  }, [sortedTasks, statusFilter, priorityFilter]);
+
+  const taskCounts = useMemo(
+    () => ({
+      todas: tasks.length,
+      pendentes: tasks.filter((task) => !task.concluida).length,
+      concluidas: tasks.filter((task) => task.concluida).length,
+    }),
+    [tasks],
+  );
+
+  function handleSaveTask(taskData: Omit<Task, "id" | "concluida">) {
+    if (editingTask) {
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === editingTask.id
+            ? {
+                ...task,
+                ...taskData,
+              }
+            : task,
+        ),
+      );
+      setEditingTask(undefined);
       return;
     }
 
-    const novaTarefa: Tarefa = {
-      titulo: tituloLimpo,
-      descricao: descricaoLimpa,
-      data,
-      prioridade,
+    const newTask: Task = {
+      id: gerarId(),
+      ...taskData,
+      concluida: false,
     };
 
-    setTarefas(prev => [...prev, novaTarefa]);
-    setTitulo('');
-    setDescricao('');
-    setData('');
-    setPrioridade('media');
+    setTasks((prev) => [...prev, newTask]);
+  }
+
+  function handleCancelForm() {
+    setEditingTask(undefined);
+  }
+
+  function handleToggleComplete(id: string) {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === id ? { ...task, concluida: !task.concluida } : task,
+      ),
+    );
+  }
+
+  function handleDeleteTask(id: string) {
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+
+    if (editingTask?.id === id) {
+      setEditingTask(undefined);
+    }
   }
 
   return (
     <main className="min-h-screen bg-[#f4f4f4] p-5 font-[Arial,sans-serif]">
       <div className="mx-auto w-full max-w-[500px] rounded-lg bg-white p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
-        <h1 className="mb-5 text-2xl font-bold text-[#333333]">Cadastro de Tarefas</h1>
+        <h1 className="mb-5 text-2xl font-bold text-[#333333]">
+          Cadastro de Tarefas
+        </h1>
 
-        <div className="flex flex-col gap-2.5">
-          <label htmlFor="inputTitulo" className="text-[0.9rem] font-bold text-[#555555]">Titulo</label>
-        <input
-          type="text"
-          id="inputTitulo"
-          placeholder="Digite o titulo da tarefa"
-          value={titulo}
-          onChange={event => setTitulo(event.target.value)}
-          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        <TaskForm
+          onSubmit={handleSaveTask}
+          onCancel={handleCancelForm}
+          editingTask={editingTask}
         />
 
-          <label htmlFor="inputDescricao" className="text-[0.9rem] font-bold text-[#555555]">Descricao</label>
-        <textarea
-          id="inputDescricao"
-          placeholder="Digite a descricao da tarefa"
-          value={descricao}
-          onChange={event => setDescricao(event.target.value)}
-          className="min-h-20 w-full resize-y rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        <FilterBar
+          statusFilter={statusFilter}
+          priorityFilter={priorityFilter}
+          onStatusFilterChange={setStatusFilter}
+          onPriorityFilterChange={setPriorityFilter}
+          taskCounts={taskCounts}
         />
 
-          <label htmlFor="inputData" className="text-[0.9rem] font-bold text-[#555555]">Data</label>
-        <input
-          type="date"
-          id="inputData"
-          value={data}
-          onChange={event => setData(event.target.value)}
-          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+        <h2 className="mb-2.5 mt-[30px] text-[1.1rem] font-bold text-[#333333]">
+          Tarefas Salvas
+        </h2>
+
+        <TaskList
+          tasks={filteredTasks}
+          onToggleComplete={handleToggleComplete}
+          onEdit={setEditingTask}
+          onDelete={handleDeleteTask}
         />
-
-          <label htmlFor="inputPrioridade" className="text-[0.9rem] font-bold text-[#555555]">Prioridade</label>
-        <select
-          id="inputPrioridade"
-          value={prioridade}
-          onChange={event => setPrioridade(event.target.value as Tarefa['prioridade'])}
-          className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
-        >
-          <option value="baixa">Baixa</option>
-          <option value="media">Media</option>
-          <option value="alta">Alta</option>
-        </select>
-
-          <button
-            id="btnSalvar"
-            onClick={salvarTarefa}
-            className="mt-1.5 cursor-pointer rounded-md border-none bg-[#4f46e5] p-2.5 text-base text-white hover:bg-[#4338ca]"
-          >
-            Salvar Tarefa
-          </button>
-        </div>
-
-        <h2 className="mb-2.5 mt-[30px] text-[1.1rem] font-bold text-[#333333]">Tarefas Salvas</h2>
-        <ul id="listaTarefas" className="flex list-none flex-col gap-2.5 p-0">
-          {tarefasOrdenadas.map((tarefa, indice) => {
-            const dataFormatada = tarefa.data
-              ? new Date(`${tarefa.data}T00:00:00`).toLocaleDateString('pt-BR')
-              : 'Sem data';
-
-            const prioridadeClasses = {
-              alta: {
-                item: 'border-l-4 border-l-red-500 bg-red-50',
-                badge: 'bg-red-100 text-red-800',
-                label: 'Alta',
-              },
-              media: {
-                item: 'border-l-4 border-l-amber-500 bg-amber-50',
-                badge: 'bg-amber-100 text-amber-800',
-                label: 'Media',
-              },
-              baixa: {
-                item: 'border-l-4 border-l-emerald-500 bg-emerald-50',
-                badge: 'bg-emerald-100 text-emerald-800',
-                label: 'Baixa',
-              },
-            }[tarefa.prioridade];
-
-            return (
-              <li
-                key={`${tarefa.titulo}-${indice}`}
-                className={`rounded-md border border-[#dddddd] px-[14px] py-3 text-[0.9rem] text-[#333333] ${prioridadeClasses.item}`}
-              >
-                <strong className="mb-1 block text-base">{tarefa.titulo}</strong>
-                {tarefa.descricao ? (
-                  <span className="mt-0.5 block text-[0.82rem] text-[#777777]">{tarefa.descricao}</span>
-                ) : null}
-                <span className="mt-1 inline-flex rounded-full px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-wide">
-                  <span className={`rounded-full px-2 py-0.5 ${prioridadeClasses.badge}`}>
-                    {prioridadeClasses.label}
-                  </span>
-                </span>
-                <span className="mt-1 block text-[0.82rem] text-[#777777]">
-                  Data: {dataFormatada}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
       </div>
     </main>
   );
