@@ -1,16 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { FilterBar } from "./components/FilterBar";
-import { TaskForm, type Task } from "./components/TaskForm";
-import { TaskList } from "./components/TaskList";
-
-type SavedTask = Partial<Task> & {
-  titulo?: unknown;
-  descricao?: unknown;
-  dataEntrega?: unknown;
-  data?: unknown;
-  prioridade?: unknown;
-  concluida?: unknown;
-};
+import { useState, useEffect, useMemo } from 'react';
+import { TaskForm, Task } from './components/TaskForm';
+import { TaskList } from './components/TaskList';
+import { FilterBar } from './components/FilterBar';
+import { Button } from './components/ui/button';
+import { Plus, ClipboardList } from 'lucide-react';
 
 function gerarId() {
   if (
@@ -53,155 +46,123 @@ function normalizarTarefa(tarefa: SavedTask): Task | null {
 }
 
 export default function App() {
-  const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<
-    "todas" | "pendentes" | "concluidas"
-  >("todas");
-  const [priorityFilter, setPriorityFilter] = useState<
-    "todas" | "baixa" | "media" | "alta"
-  >("todas");
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const salvas = localStorage.getItem("tarefas");
-      if (!salvas) return [];
-
-      const parsed = JSON.parse(salvas);
-      if (!Array.isArray(parsed)) return [];
-
-      return parsed
-        .map((item) => normalizarTarefa(item as SavedTask))
-        .filter((item): item is Task => item !== null);
-    } catch {
-      return [];
-    }
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [statusFilter, setStatusFilter] = useState<'todas' | 'pendentes' | 'concluidas'>('todas');
+  const [priorityFilter, setPriorityFilter] = useState<'todas' | 'baixa' | 'media' | 'alta'>('todas');
 
   useEffect(() => {
-    localStorage.setItem("tarefas", JSON.stringify(tasks));
+    const storedTasks = localStorage.getItem('tasks');
+    if (storedTasks) {
+      try {
+        setTasks(JSON.parse(storedTasks));
+      } catch (error) {
+        console.error('Erro ao carregar tarefas:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  const sortedTasks = useMemo(() => {
-    const prioridadeOrdem: Record<Task["prioridade"], number> = {
-      alta: 0,
-      media: 1,
-      baixa: 2,
-    };
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'concluida'>) => {
+    if (editingTask) {
+      setTasks(tasks.map(task =>
+        task.id === editingTask.id ? { ...task, ...taskData } : task
+      ));
+      setEditingTask(undefined);
+    } else {
+      const newTask: Task = {
+        ...taskData,
+        id: crypto.randomUUID(),
+        concluida: false,
+      };
+      setTasks([...tasks, newTask]);
+    }
+    setShowForm(false);
+  };
 
-    return [...tasks].sort((a, b) => {
-      const diffPrioridade =
-        prioridadeOrdem[a.prioridade] - prioridadeOrdem[b.prioridade];
-      if (diffPrioridade !== 0) return diffPrioridade;
+  const handleToggleComplete = (id: string) => {
+    setTasks(tasks.map(task =>
+      task.id === id ? { ...task, concluida: !task.concluida } : task
+    ));
+  };
 
-      if (!a.dataEntrega && !b.dataEntrega) return 0;
-      if (!a.dataEntrega) return 1;
-      if (!b.dataEntrega) return -1;
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setShowForm(true);
+  };
 
-      return (
-        new Date(a.dataEntrega).getTime() - new Date(b.dataEntrega).getTime()
-      );
-    });
-  }, [tasks]);
+  const handleDeleteTask = (id: string) => {
+    setTasks(tasks.filter(task => task.id !== id));
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingTask(undefined);
+  };
 
   const filteredTasks = useMemo(() => {
-    return sortedTasks.filter((task) => {
-      const statusOk =
-        statusFilter === "todas" ||
-        (statusFilter === "pendentes" && !task.concluida) ||
-        (statusFilter === "concluidas" && task.concluida);
-
-      const prioridadeOk =
-        priorityFilter === "todas" || task.prioridade === priorityFilter;
-
-      return statusOk && prioridadeOk;
+    return tasks.filter(task => {
+      if (statusFilter === 'pendentes' && task.concluida) return false;
+      if (statusFilter === 'concluidas' && !task.concluida) return false;
+      if (priorityFilter !== 'todas' && task.prioridade !== priorityFilter) return false;
+      return true;
+    }).sort((a, b) => {
+      if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
+      const priorityOrder = { alta: 0, media: 1, baixa: 2 };
+      if (a.prioridade !== b.prioridade) return priorityOrder[a.prioridade] - priorityOrder[b.prioridade];
+      return 0;
     });
-  }, [sortedTasks, statusFilter, priorityFilter]);
+  }, [tasks, statusFilter, priorityFilter]);
 
-  const taskCounts = useMemo(
-    () => ({
-      todas: tasks.length,
-      pendentes: tasks.filter((task) => !task.concluida).length,
-      concluidas: tasks.filter((task) => task.concluida).length,
-    }),
-    [tasks],
-  );
-
-  function handleSaveTask(taskData: Omit<Task, "id" | "concluida">) {
-    if (editingTask) {
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === editingTask.id
-            ? {
-                ...task,
-                ...taskData,
-              }
-            : task,
-        ),
-      );
-      setEditingTask(undefined);
-      return;
-    }
-
-    const newTask: Task = {
-      id: gerarId(),
-      ...taskData,
-      concluida: false,
-    };
-
-    setTasks((prev) => [...prev, newTask]);
-  }
-
-  function handleCancelForm() {
-    setEditingTask(undefined);
-  }
-
-  function handleToggleComplete(id: string) {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, concluida: !task.concluida } : task,
-      ),
-    );
-  }
-
-  function handleDeleteTask(id: string) {
-    setTasks((prev) => prev.filter((task) => task.id !== id));
-
-    if (editingTask?.id === id) {
-      setEditingTask(undefined);
-    }
-  }
+  const taskCounts = useMemo(() => ({
+    todas: tasks.length,
+    pendentes: tasks.filter(t => !t.concluida).length,
+    concluidas: tasks.filter(t => t.concluida).length,
+  }), [tasks]);
 
   return (
-    <main className="min-h-screen bg-[#f4f4f4] p-5 font-[Arial,sans-serif]">
-      <div className="mx-auto w-full max-w-[500px] rounded-lg bg-white p-[30px] shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
-        <h1 className="mb-5 text-2xl font-bold text-[#333333]">
-          Cadastro de Tarefas
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+       {/* Conteúdo do Header e Lista - Com título atualizado UBM */}
+       <div className="container mx-auto max-w-5xl">
+          <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold flex gap-2 items-center">
+          <ClipboardList /> Gerenciador
+          </h1>
+            
+            {!showForm && (
+              <Button onClick={() => setShowForm(true)} className="flex gap-2">
+                <Plus size={20} /> Nova Tarefa
+              </Button>
+            )}
+          </div>
 
-        <TaskForm
-          onSubmit={handleSaveTask}
-          onCancel={handleCancelForm}
-          editingTask={editingTask}
-        />
+          {showForm && (
+            <TaskForm 
+              onSubmit={handleAddTask} 
+              onCancel={handleCancelForm} 
+              editingTask={editingTask} 
+            />
+          )}
+          
+          <FilterBar 
+            statusFilter={statusFilter} 
+            priorityFilter={priorityFilter} 
+            onStatusFilterChange={setStatusFilter} 
+            onPriorityFilterChange={setPriorityFilter} 
+            taskCounts={taskCounts} 
+          />
 
-        <FilterBar
-          statusFilter={statusFilter}
-          priorityFilter={priorityFilter}
-          onStatusFilterChange={setStatusFilter}
-          onPriorityFilterChange={setPriorityFilter}
-          taskCounts={taskCounts}
-        />
-
-        <h2 className="mb-2.5 mt-[30px] text-[1.1rem] font-bold text-[#333333]">
-          Tarefas Salvas
-        </h2>
-
-        <TaskList
-          tasks={filteredTasks}
-          onToggleComplete={handleToggleComplete}
-          onEdit={setEditingTask}
-          onDelete={handleDeleteTask}
-        />
-      </div>
-    </main>
+          <TaskList 
+            tasks={filteredTasks} 
+            onToggleComplete={handleToggleComplete} 
+            onEdit={handleEditTask} 
+            onDelete={handleDeleteTask} 
+          />
+       </div>
+    </div>
   );
 }

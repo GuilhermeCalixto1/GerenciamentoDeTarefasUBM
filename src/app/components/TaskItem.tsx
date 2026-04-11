@@ -1,5 +1,9 @@
-import { Task } from "./TaskForm";
-import { AlertCircle } from "lucide-react";
+import { Task } from './TaskForm';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Pencil, Trash2, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface TaskItemProps {
   task: Task;
@@ -8,37 +12,13 @@ interface TaskItemProps {
   onDelete: (id: string) => void;
 }
 
-const priorityColors = {
-  baixa: "bg-blue-100 text-blue-800 border-blue-200",
-  media: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  alta: "bg-red-100 text-red-800 border-red-200",
-};
-
-const priorityLabels = {
-  baixa: "Baixa",
-  media: "Média",
-  alta: "Alta",
-};
-
-export function TaskItem({
-  task,
-  onToggleComplete,
-  onEdit,
-  onDelete,
-}: TaskItemProps) {
-  const dataFormatada = task.dataEntrega
-    ? new Date(`${task.dataEntrega}T00:00:00`).toLocaleDateString("pt-BR")
-    : "Sem data";
-
-  const isOverdue =
-    task.dataEntrega &&
-    new Date(task.dataEntrega) < new Date() &&
-    !task.concluida;
-
-  const handleDelete = () => {
-    if (confirm("Tem certeza que deseja excluir esta tarefa?")) {
-      onDelete(task.id);
-    }
+export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemProps) {
+  
+  // Cores das etiquetas de prioridade
+  const priorityColors = {
+    baixa: '#dbeafe',
+    media: '#fef9c3',
+    alta: '#fee2e2',
   };
 
   const prioridadeClasses = {
@@ -60,42 +40,91 @@ export function TaskItem({
   }[task.prioridade];
 
   return (
-    <li
-      className={`rounded-md border border-[#dddddd] px-[14px] py-3 text-[0.9rem] text-[#333333] ${prioridadeClasses.item} ${
-        task.concluida ? "opacity-70" : ""
-      }`}
+    <div 
+      style={{ 
+        backgroundColor: task.concluida ? '#f3f4f6' : '#ffffff',
+        opacity: task.concluida ? 0.6 : 1,
+        padding: '16px',
+        borderRadius: '12px',
+        marginBottom: '12px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        transition: 'all 0.2s ease'
+      }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <label className="flex items-start gap-2.5">
-          <input
-            type="checkbox"
-            checked={task.concluida}
-            onChange={() => onToggleComplete(task.id)}
-            className="mt-1 h-4 w-4 cursor-pointer accent-[#16a34a]"
-          />
-          <span>
-            <strong
-              className={`mb-1 block text-base ${task.concluida ? "line-through" : ""}`}
-            >
-              {task.titulo}
-            </strong>
-          </span>
-        </label>
+      {/* 1. CHECKBOX (Caixinha que sempre aparece) */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <input 
+          type="checkbox" 
+          checked={task.concluida} 
+          onChange={() => onToggleComplete(task.id)}
+          style={{ 
+            width: '22px', 
+            height: '22px', 
+            cursor: 'pointer',
+            accentColor: '#2563eb' 
+          }} 
+        />
+      </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => onEdit(task)}
-            className="cursor-pointer rounded-md border border-[#c7d2fe] bg-[#eef2ff] px-2.5 py-1 text-[0.78rem] font-semibold text-[#3730a3] hover:bg-[#e0e7ff]"
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          {/* 3. TEXTO COM RISCO (Garantido pelo textDecoration) */}
+          <h3 
+            style={{ 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: '600',
+              textDecoration: task.concluida ? 'line-through' : 'none',
+              color: task.concluida ? '#6b7280' : '#111827',
+              transition: 'all 0.2s ease'
+            }}
           >
-            Editar
-          </button>
-          <button
-            onClick={handleDelete}
-            className="cursor-pointer rounded-md border border-[#fecaca] bg-[#fef2f2] px-2.5 py-1 text-[0.78rem] font-semibold text-[#b91c1c] hover:bg-[#fee2e2]"
-          >
-            Excluir
-          </button>
+            {task.titulo}
+          </h3>
+          
+          <span style={{ 
+            backgroundColor: priorityColors[task.prioridade], 
+            fontSize: '12px', 
+            padding: '2px 8px', 
+            borderRadius: '99px',
+            color: '#1f2937',
+            border: '1px solid rgba(0,0,0,0.05)'
+          }}>
+            {task.prioridade.toUpperCase()}
+          </span>
         </div>
+        
+        {task.descricao && (
+          <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: task.concluida ? '#9ca3af' : '#4b5563' }}>
+            {task.descricao}
+          </p>
+        )}
+
+        {task.dataEntrega && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#9ca3af' }}>
+            <Calendar size={14} />
+            <span>{format(new Date(task.dataEntrega), "dd/MM/yyyy", { locale: ptBR })}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Botões de Ação */}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button 
+          onClick={() => onEdit(task)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+        >
+          <Pencil size={18} color="#2563eb" />
+        </button>
+        <button 
+          onClick={() => { if(confirm('Excluir?')) onDelete(task.id) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+        >
+          <Trash2 size={18} color="#ef4444" />
+        </button>
       </div>
 
       {task.descricao ? (
