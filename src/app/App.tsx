@@ -1,9 +1,65 @@
+<<<<<<< Updated upstream
 import { useState, useEffect, useMemo } from 'react';
 import { TaskForm, Task } from './components/TaskForm';
 import { TaskList } from './components/TaskList';
 import { FilterBar } from './components/FilterBar';
 import { Button } from './components/ui/button';
 import { Plus, ClipboardList } from 'lucide-react';
+=======
+import { useState, useEffect, useMemo, useRef } from "react";
+import { TaskForm, Task } from "./components/TaskForm";
+import { TaskList } from "./components/TaskList";
+import { FilterBar } from "./components/FilterBar";
+
+type SavedTask = Partial<Task> & {
+  titulo?: unknown;
+  descricao?: unknown;
+  dataEntrega?: unknown;
+  data?: unknown;
+  prioridade?: unknown;
+  concluida?: unknown;
+};
+
+function gerarId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizarTarefa(tarefa: SavedTask): Task | null {
+  if (typeof tarefa.titulo !== "string" || tarefa.titulo.trim() === "") {
+    return null;
+  }
+
+  const prioridadeValida =
+    tarefa.prioridade === "alta" ||
+    tarefa.prioridade === "media" ||
+    tarefa.prioridade === "baixa"
+      ? tarefa.prioridade
+      : "media";
+
+  const dataNormalizada =
+    typeof tarefa.dataEntrega === "string"
+      ? tarefa.dataEntrega
+      : typeof tarefa.data === "string"
+        ? tarefa.data
+        : "";
+
+  return {
+    id: typeof tarefa.id === "string" && tarefa.id ? tarefa.id : gerarId(),
+    titulo: tarefa.titulo.trim(),
+    descricao: typeof tarefa.descricao === "string" ? tarefa.descricao : "",
+    dataEntrega: dataNormalizada,
+    prioridade: prioridadeValida,
+    concluida: Boolean(tarefa.concluida),
+  };
+}
+>>>>>>> Stashed changes
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -78,11 +134,70 @@ export default function App() {
     });
   }, [tasks, statusFilter, priorityFilter]);
 
+<<<<<<< Updated upstream
   const taskCounts = useMemo(() => ({
     todas: tasks.length,
     pendentes: tasks.filter(t => !t.concluida).length,
     concluidas: tasks.filter(t => t.concluida).length,
   }), [tasks]);
+=======
+  const taskCounts = useMemo(
+    () => ({
+      todas: tasks.length,
+      pendentes: tasks.filter((t) => !t.concluida).length,
+      concluidas: tasks.filter((t) => t.concluida).length,
+    }),
+    [tasks],
+  );
+  const notifiedTasks = useRef(new Set<string>());
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+
+    const checkDeadlines = () => {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0); 
+
+      tasks.forEach(task => {
+        if (!task.dataEntrega) return;
+
+        const dataVencimento = new Date(task.dataEntrega);
+        dataVencimento.setMinutes(dataVencimento.getMinutes() + dataVencimento.getTimezoneOffset());
+        dataVencimento.setHours(0, 0, 0, 0);
+
+        const diferencaTempo = dataVencimento.getTime() - hoje.getTime();
+        const diasRestantes = Math.ceil(diferencaTempo / (1000 * 60 * 60 * 24));
+
+        if (diasRestantes <= 3 && diasRestantes >= 0) {
+          if (!notifiedTasks.current.has(task.id)) {
+            
+            const mensagem = diasRestantes === 0 
+              ? `A tarefa "${task.titulo}" encerra HOJE!` 
+              : `A tarefa "${task.titulo}" encerra em ${diasRestantes} dia(s).`;
+
+            if (Notification.permission === 'granted') {
+              new Notification('⚠️ Prazo Próximo!', {
+                body: mensagem,
+              });
+              notifiedTasks.current.add(task.id);
+            } else if (Notification.permission === 'denied') {
+              alert(`Prazo Próximo!\n${mensagem}`);
+              notifiedTasks.current.add(task.id);
+            }
+          }
+        }
+      });
+    };
+
+    checkDeadlines();
+
+    const interval = setInterval(checkDeadlines, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+
+  }, [tasks]);
+>>>>>>> Stashed changes
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
