@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useState, useEffect, useMemo } from "react";
 import { TaskForm, Task } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
@@ -51,7 +52,6 @@ function normalizarTarefa(tarefa: SavedTask): Task | null {
     concluida: Boolean(tarefa.concluida),
   };
 }
-
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -141,6 +141,54 @@ export default function App() {
     }),
     [tasks],
   );
+  const notifiedTasks = useRef(new Set<string>());
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+
+    const checkDeadlines = () => {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0); 
+
+      tasks.forEach(task => {
+        if (!task.dataEntrega) return;
+
+        const dataVencimento = new Date(task.dataEntrega);
+        dataVencimento.setMinutes(dataVencimento.getMinutes() + dataVencimento.getTimezoneOffset());
+        dataVencimento.setHours(0, 0, 0, 0);
+
+        const diferencaTempo = dataVencimento.getTime() - hoje.getTime();
+        const diasRestantes = Math.ceil(diferencaTempo / (1000 * 60 * 60 * 24));
+
+        if (diasRestantes <= 3 && diasRestantes >= 0) {
+          if (!notifiedTasks.current.has(task.id)) {
+            
+            const mensagem = diasRestantes === 0 
+              ? `A tarefa "${task.titulo}" encerra HOJE!` 
+              : `A tarefa "${task.titulo}" encerra em ${diasRestantes} dia(s).`;
+
+            if (Notification.permission === 'granted') {
+              new Notification('⚠️ Prazo Próximo!', {
+                body: mensagem,
+              });
+              notifiedTasks.current.add(task.id);
+            } else if (Notification.permission === 'denied') {
+              alert(`Prazo Próximo!\n${mensagem}`);
+              notifiedTasks.current.add(task.id);
+            }
+          }
+        }
+      });
+    };
+
+    checkDeadlines();
+
+    const interval = setInterval(checkDeadlines, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+
+  }, [tasks]);
 
   return (
     <main className="min-h-screen bg-[#f4f4f4] p-5 font-[Arial,sans-serif]">
