@@ -1,31 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { X } from 'lucide-react';
+import { useState, useEffect } from "react";
 
 export interface Task {
   id: string;
   titulo: string;
   descricao: string;
   dataEntrega: string;
-  prioridade: 'baixa' | 'media' | 'alta';
+  prioridade: "baixa" | "media" | "alta";
   concluida: boolean;
 }
 
 interface TaskFormProps {
-  onSubmit: (task: Omit<Task, 'id' | 'concluida'>) => void;
+  onSubmit: (task: Omit<Task, "id" | "concluida">) => void;
   onCancel: () => void;
   editingTask?: Task;
 }
 
 export function TaskForm({ onSubmit, onCancel, editingTask }: TaskFormProps) {
-  const [titulo, setTitulo] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [dataEntrega, setDataEntrega] = useState('');
-  const [prioridade, setPrioridade] = useState<'baixa' | 'media' | 'alta'>('media');
+  const [titulo, setTitulo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [dataEntrega, setDataEntrega] = useState("");
+  const [prioridade, setPrioridade] = useState<"baixa" | "media" | "alta">(
+    "media",
+  );
 
   useEffect(() => {
     if (editingTask) {
@@ -38,9 +34,9 @@ export function TaskForm({ onSubmit, onCancel, editingTask }: TaskFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!titulo.trim()) {
-      alert('Por favor, preencha o título da tarefa.');
+      alert("Por favor, preencha o título da tarefa.");
       return;
     }
 
@@ -52,84 +48,93 @@ export function TaskForm({ onSubmit, onCancel, editingTask }: TaskFormProps) {
     });
 
     // Limpar formulário
-    setTitulo('');
-    setDescricao('');
-    setDataEntrega('');
-    setPrioridade('media');
+    setTitulo("");
+    setDescricao("");
+    setDataEntrega("");
+    setPrioridade("media");
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">
-          {editingTask ? 'Editar Tarefa' : 'Nova Tarefa'}
-        </h2>
+    <form onSubmit={handleSubmit} className="mb-4 flex flex-col gap-2.5">
+      <label
+        htmlFor="titulo"
+        className="text-[0.9rem] font-bold text-[#555555]"
+      >
+        Titulo
+      </label>
+      <input
+        id="titulo"
+        type="text"
+        value={titulo}
+        onChange={(e) => setTitulo(e.target.value)}
+        placeholder="Digite o titulo da tarefa"
+        required
+        className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+      />
+
+      <label
+        htmlFor="descricao"
+        className="text-[0.9rem] font-bold text-[#555555]"
+      >
+        Descricao
+      </label>
+      <textarea
+        id="descricao"
+        value={descricao}
+        onChange={(e) => setDescricao(e.target.value)}
+        placeholder="Digite a descricao da tarefa"
+        className="min-h-20 w-full resize-y rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+      />
+
+      <label
+        htmlFor="dataEntrega"
+        className="text-[0.9rem] font-bold text-[#555555]"
+      >
+        Data
+      </label>
+      <input
+        id="dataEntrega"
+        type="date"
+        value={dataEntrega}
+        onChange={(e) => setDataEntrega(e.target.value)}
+        className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+      />
+
+      <label
+        htmlFor="prioridade"
+        className="text-[0.9rem] font-bold text-[#555555]"
+      >
+        Prioridade
+      </label>
+      <select
+        id="prioridade"
+        value={prioridade}
+        onChange={(e) =>
+          setPrioridade(e.target.value as "baixa" | "media" | "alta")
+        }
+        className="w-full rounded-md border border-[#cccccc] px-2.5 py-2 text-[0.95rem] text-[#333333] outline-none box-border"
+      >
+        <option value="baixa">Baixa</option>
+        <option value="media">Media</option>
+        <option value="alta">Alta</option>
+      </select>
+
+      <button
+        type="submit"
+        className="mt-1.5 cursor-pointer rounded-md border-none bg-[#4f46e5] p-2.5 text-base text-white hover:bg-[#4338ca]"
+      >
+        {editingTask ? "Atualizar Tarefa" : "Salvar Tarefa"}
+      </button>
+
+      {editingTask ? (
         <button
+          type="button"
           onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          className="cursor-pointer rounded-md border border-[#d1d5db] bg-white p-2.5 text-base text-[#374151] hover:bg-[#f9fafb]"
         >
-          <X size={24} />
+          Cancelar Edicao
         </button>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="titulo">Título *</Label>
-          <Input
-            id="titulo"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            placeholder="Digite o título da tarefa"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="descricao">Descrição</Label>
-          <Textarea
-            id="descricao"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            placeholder="Digite uma descrição (opcional)"
-            rows={3}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="dataEntrega">Data de Entrega</Label>
-            <Input
-              id="dataEntrega"
-              type="date"
-              value={dataEntrega}
-              onChange={(e) => setDataEntrega(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="prioridade">Prioridade</Label>
-            <Select value={prioridade} onValueChange={(value: 'baixa' | 'media' | 'alta') => setPrioridade(value)}>
-              <SelectTrigger id="prioridade">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="baixa">Baixa</SelectItem>
-                <SelectItem value="media">Média</SelectItem>
-                <SelectItem value="alta">Alta</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <Button type="submit" className="flex-1">
-            {editingTask ? 'Salvar Alterações' : 'Adicionar Tarefa'}
-          </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-        </div>
-      </form>
-    </div>
+      ) : null}
+    </form>
   );
 }

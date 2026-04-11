@@ -5,6 +5,46 @@ import { FilterBar } from './components/FilterBar';
 import { Button } from './components/ui/button';
 import { Plus, ClipboardList } from 'lucide-react';
 
+function gerarId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizarTarefa(tarefa: SavedTask): Task | null {
+  if (typeof tarefa.titulo !== "string" || tarefa.titulo.trim() === "") {
+    return null;
+  }
+
+  const prioridadeValida =
+    tarefa.prioridade === "alta" ||
+    tarefa.prioridade === "media" ||
+    tarefa.prioridade === "baixa"
+      ? tarefa.prioridade
+      : "media";
+
+  const dataNormalizada =
+    typeof tarefa.dataEntrega === "string"
+      ? tarefa.dataEntrega
+      : typeof tarefa.data === "string"
+        ? tarefa.data
+        : "";
+
+  return {
+    id: typeof tarefa.id === "string" && tarefa.id ? tarefa.id : gerarId(),
+    titulo: tarefa.titulo.trim(),
+    descricao: typeof tarefa.descricao === "string" ? tarefa.descricao : "",
+    dataEntrega: dataNormalizada,
+    prioridade: prioridadeValida,
+    concluida: Boolean(tarefa.concluida),
+  };
+}
+
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showForm, setShowForm] = useState(false);

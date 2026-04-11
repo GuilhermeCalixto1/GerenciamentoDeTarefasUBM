@@ -21,6 +21,24 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
     alta: '#fee2e2',
   };
 
+  const prioridadeClasses = {
+    alta: {
+      item: "border-l-4 border-l-red-500 bg-red-50",
+      badge: "bg-red-100 text-red-800",
+      label: "Alta",
+    },
+    media: {
+      item: "border-l-4 border-l-amber-500 bg-amber-50",
+      badge: "bg-amber-100 text-amber-800",
+      label: "Media",
+    },
+    baixa: {
+      item: "border-l-4 border-l-emerald-500 bg-emerald-50",
+      badge: "bg-emerald-100 text-emerald-800",
+      label: "Baixa",
+    },
+  }[task.prioridade];
+
   return (
     <div 
       style={{ 
@@ -108,6 +126,35 @@ export function TaskItem({ task, onToggleComplete, onEdit, onDelete }: TaskItemP
           <Trash2 size={18} color="#ef4444" />
         </button>
       </div>
-    </div>
+
+      {task.descricao ? (
+        <span
+          className={`mt-0.5 block text-[0.82rem] text-[#777777] ${
+            task.concluida ? "line-through" : ""
+          }`}
+        >
+          {task.descricao}
+        </span>
+      ) : null}
+
+      <span className="mt-1 inline-flex rounded-full px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-wide">
+        <span className={`rounded-full px-2 py-0.5 ${prioridadeClasses.badge}`}>
+          {prioridadeClasses.label}
+        </span>
+      </span>
+
+      <span
+        className={`mt-1 block text-[0.82rem] ${isOverdue ? "font-semibold text-[#b91c1c]" : "text-[#777777]"}`}
+      >
+        {isOverdue ? (
+          <span className="inline-flex items-center gap-1">
+            <AlertCircle size={14} />
+            Data: {dataFormatada} (Atrasada)
+          </span>
+        ) : (
+          <span>Data: {dataFormatada}</span>
+        )}
+      </span>
+    </li>
   );
 }

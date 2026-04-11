@@ -1,12 +1,18 @@
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Filter } from 'lucide-react';
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Filter } from "lucide-react";
 
 interface FilterBarProps {
-  statusFilter: 'todas' | 'pendentes' | 'concluidas';
-  priorityFilter: 'todas' | 'baixa' | 'media' | 'alta';
-  onStatusFilterChange: (value: 'todas' | 'pendentes' | 'concluidas') => void;
-  onPriorityFilterChange: (value: 'todas' | 'baixa' | 'media' | 'alta') => void;
+  statusFilter: "todas" | "pendentes" | "concluidas";
+  priorityFilter: "todas" | "baixa" | "media" | "alta";
+  onStatusFilterChange: (value: "todas" | "pendentes" | "concluidas") => void;
+  onPriorityFilterChange: (value: "todas" | "baixa" | "media" | "alta") => void;
   taskCounts: {
     todas: number;
     pendentes: number;
@@ -22,45 +28,49 @@ export function FilterBar({
   taskCounts,
 }: FilterBarProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Filter size={20} className="text-gray-600" />
-        <h3 className="font-semibold text-gray-900">Filtros</h3>
+    <div className="mb-4 rounded-md border border-[#e5e7eb] bg-[#fafafa] p-3">
+      <div className="mb-3 flex items-center gap-2">
+        <Filter size={18} className="text-[#6b7280]" />
+        <h3 className="text-sm font-semibold text-[#374151]">Filtros</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Status</label>
-          <div className="flex gap-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.6fr_1fr] md:items-end">
+        <div className="min-w-0 space-y-2">
+          <label className="text-[0.85rem] font-semibold text-[#555555]">
+            Status
+          </label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button
-              variant={statusFilter === 'todas' ? 'default' : 'outline'}
+              variant={statusFilter === "todas" ? "default" : "outline"}
               size="sm"
-              onClick={() => onStatusFilterChange('todas')}
-              className="flex-1"
+              onClick={() => onStatusFilterChange("todas")}
+              className="min-w-0 text-xs"
             >
               Todas ({taskCounts.todas})
             </Button>
             <Button
-              variant={statusFilter === 'pendentes' ? 'default' : 'outline'}
+              variant={statusFilter === "pendentes" ? "default" : "outline"}
               size="sm"
-              onClick={() => onStatusFilterChange('pendentes')}
-              className="flex-1"
+              onClick={() => onStatusFilterChange("pendentes")}
+              className="min-w-0 text-xs"
             >
               Pendentes ({taskCounts.pendentes})
             </Button>
             <Button
-              variant={statusFilter === 'concluidas' ? 'default' : 'outline'}
+              variant={statusFilter === "concluidas" ? "default" : "outline"}
               size="sm"
-              onClick={() => onStatusFilterChange('concluidas')}
-              className="flex-1"
+              onClick={() => onStatusFilterChange("concluidas")}
+              className="min-w-0 text-xs"
             >
               Concluídas ({taskCounts.concluidas})
             </Button>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Prioridade</label>
+        <div className="min-w-0 space-y-2">
+          <label className="text-[0.85rem] font-semibold text-[#555555]">
+            Prioridade
+          </label>
           <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
             <SelectTrigger>
               <SelectValue />
