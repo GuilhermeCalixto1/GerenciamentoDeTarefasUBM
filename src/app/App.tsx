@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useState, useEffect, useMemo } from "react";
 import { TaskForm, Task } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
 import { FilterBar } from "./components/FilterBar";
@@ -144,19 +143,25 @@ export default function App() {
   const notifiedTasks = useRef(new Set<string>());
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+    if (
+      "Notification" in window &&
+      Notification.permission !== "granted" &&
+      Notification.permission !== "denied"
+    ) {
       Notification.requestPermission();
     }
 
     const checkDeadlines = () => {
       const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0); 
+      hoje.setHours(0, 0, 0, 0);
 
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         if (!task.dataEntrega) return;
 
         const dataVencimento = new Date(task.dataEntrega);
-        dataVencimento.setMinutes(dataVencimento.getMinutes() + dataVencimento.getTimezoneOffset());
+        dataVencimento.setMinutes(
+          dataVencimento.getMinutes() + dataVencimento.getTimezoneOffset(),
+        );
         dataVencimento.setHours(0, 0, 0, 0);
 
         const diferencaTempo = dataVencimento.getTime() - hoje.getTime();
@@ -164,17 +169,17 @@ export default function App() {
 
         if (diasRestantes <= 3 && diasRestantes >= 0) {
           if (!notifiedTasks.current.has(task.id)) {
-            
-            const mensagem = diasRestantes === 0 
-              ? `A tarefa "${task.titulo}" encerra HOJE!` 
-              : `A tarefa "${task.titulo}" encerra em ${diasRestantes} dia(s).`;
+            const mensagem =
+              diasRestantes === 0
+                ? `A tarefa "${task.titulo}" encerra HOJE!`
+                : `A tarefa "${task.titulo}" encerra em ${diasRestantes} dia(s).`;
 
-            if (Notification.permission === 'granted') {
-              new Notification('⚠️ Prazo Próximo!', {
+            if (Notification.permission === "granted") {
+              new Notification("⚠️ Prazo Próximo!", {
                 body: mensagem,
               });
               notifiedTasks.current.add(task.id);
-            } else if (Notification.permission === 'denied') {
+            } else if (Notification.permission === "denied") {
               alert(`Prazo Próximo!\n${mensagem}`);
               notifiedTasks.current.add(task.id);
             }
@@ -187,7 +192,6 @@ export default function App() {
 
     const interval = setInterval(checkDeadlines, 60 * 60 * 1000);
     return () => clearInterval(interval);
-
   }, [tasks]);
 
   return (
