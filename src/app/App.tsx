@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { TaskForm, Task } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
 import { FilterBar } from "./components/FilterBar";
+import { exportToCSV, exportToPDF } from './exporta';
 
 type SavedTask = Partial<Task> & {
   titulo?: unknown;
