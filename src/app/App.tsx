@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { TaskForm, Task } from "./components/TaskForm";
 import { TaskList } from "./components/TaskList";
 import { FilterBar } from "./components/FilterBar";
+import { exportToCSV, exportToPDF } from "./components/exportar";
+
 
 type SavedTask = Partial<Task> & {
   titulo?: unknown;
@@ -51,6 +53,7 @@ function normalizarTarefa(tarefa: SavedTask): Task | null {
     concluida: Boolean(tarefa.concluida),
   };
 }
+
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -215,9 +218,27 @@ export default function App() {
           taskCounts={taskCounts}
         />
 
-        <h2 className="mb-2.5 mt-[30px] text-[1.1rem] font-bold text-[#333333]">
-          Tarefas Salvas
-        </h2>
+        <div className="mt-[30px] flex items-center justify-between mb-4">
+          <h2 className="text-[1.1rem] font-bold text-[#333333]">
+            Tarefas Salvas
+          </h2>
+          
+          {/* AQUI ESTÃO OS BOTÕES DE EXPORTAÇÃO */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportToCSV(tasks)}
+              className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 shadow-sm"
+            >
+              CSV
+            </button>
+            <button
+              onClick={() => exportToPDF(tasks)}
+              className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 shadow-sm"
+            >
+              PDF
+            </button>
+          </div>
+        </div>
 
         <TaskList
           tasks={filteredTasks}

@@ -1,7 +1,12 @@
 import { defineConfig } from 'vite'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+
+// Recriando __filename e __dirname para o ambiente de módulos (ESM)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export default defineConfig({
   plugins: [
@@ -13,7 +18,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './src'), // Corrigido de _dirname para __dirname
     },
   },
 
