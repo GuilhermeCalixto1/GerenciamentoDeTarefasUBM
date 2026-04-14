@@ -2,7 +2,7 @@
 
 // src/app/utils/exporting.ts
 
-import { Task } from '../types';
+import { Task } from './TaskForm';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -11,14 +11,13 @@ import autoTable from 'jspdf-autotable';
 // ==========================================
 export const exportToCSV = (tasks: Task[]) => {
   // Cabeçalho do arquivo
-  const headers = ["ID", "Titulo", "Status", "Categoria", "Prioridade"].join(",");
+  const headers = ["ID", "Titulo", "Status", "Prioridade"].join(",");
   
   // Linhas de dados
   const rows = tasks.map(task => [
     task.id,
     `"${task.titulo}"`, // Aspas para evitar erro com vírgulas no título
     task.concluida ? "Concluida" : "Pendente",
-    task.categoria || "N/A",
     task.prioridade || "N/A"
   ].join(","));
 
@@ -47,14 +46,13 @@ export const exportToPDF = (tasks: Task[]) => {
   const tableData = tasks.map(t => [
     t.titulo,
     t.concluida ? "Sim" : "Não",
-    t.categoria || "Geral",
     t.prioridade || "Normal"
   ]);
 
   // Usando a função autoTable injetando o doc e forçando a tipagem 
   // para evitar qualquer erro "No overload matches this call" no TypeScript
   autoTable(doc, {
-    head: [['Tarefa', 'Concluída', 'Categoria', 'Prioridade']],
+    head: [['Tarefa', 'Concluída', 'Prioridade']],
     body: tableData as any[], 
     startY: 25,
   });
